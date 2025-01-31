@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css"><link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css"><link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        
+        #map-title {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 3px 8px; /* Diminue l'espace interne */
+            font-size: 10px; /* Réduit la taille du texte si besoin */
+            font-weight: bold;
+            border-radius: 3px; /* Coins légèrement arrondis */
+            box-shadow: 2px 2px 5px rgba(3, 56, 231, 0.3);
+            z-index: 1000;
+            white-space: nowrap; /* Empêche les retours à la ligne */
+            display: inline-block; /* Ajuste le cadre au texte */
+            width: auto; /* Largeur adaptée au texte */
+            color: #271691; /* Changer la couleur du texte */
+            
+        }
+         
+        
+     #map-credits {
+            position: absolute;
+            bottom: 0px;
+            left: 0%;
+            transform: translateX(0%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 5px 15px;
+            font-size: 14px;
+            font-style: italic;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            white-space: nowrap; /* Empêche les retours à la ligne */
+            display: inline-block; /* Ajuste le cadre au texte */
+            width: auto; /* Largeur adaptée au texte */
+            color: #271691; /* Changer la couleur du texte */
+        }
+        
+        #map-logo {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        
+        </style>
+        <title></title>
+    </head>
+    <body>
+
+        
+        <div id="map-title">
+             <h1>
+                CARTE ADMINISTRATIVE DE LA REGION DU BAFING
+             </h1>  
+        </div>
+
+        <div id="map-logo">
+            <img src="images/logo.png" alt="Logo" width="80">
+        </div>
+        
+
+        <div id="map">
+        </div>
+        
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script><script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet-svg-shape-markers.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/yaf_region_1.js"></script>
+        <script src="data/yaf_depart_2.js"></script>
+        <script src="data/yaf_souspref_3.js"></script>
+        <script src="data/yaf_retenueEau_4.js"></script>
+        <script src="data/yaf_coursEau_5.js"></script>
+        <script src="data/yaf_localites_6.js"></script>
+        <script src="data/yaf_route_7.js"></script>
+        <script src="data/yaf_localitesPoint_8.js"></script>
+        <script src="data/yaf_chefLeuReg_9.js"></script>
+        <script src="data/yaf_chefLieuDepart_10.js"></script>
+        <script src="data/yaf_chefLieuSousPref_11.js"></script>
+        <script src="data/yaf_equipement_12.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:1
+        }).fitBounds([[7.806314327162202,-8.452440905431954],[9.12352166913034,-6.725773138826444]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_GoogleHybrid_0');
+        map.getPane('pane_GoogleHybrid_0').style.zIndex = 400;
+        var layer_GoogleHybrid_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleHybrid_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.google.at/permissions/geoguidelines/attr-guide.html">Map data ©2015 Google</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_GoogleHybrid_0;
+        map.addLayer(layer_GoogleHybrid_0);
+        function pop_yaf_region_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['__gid'] !== null ? autolinker.link(feature.properties['__gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmreg</th>\
+                        <td>' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmpays</th>\
+                        <td>' + (feature.properties['nmpays'] !== null ? autolinker.link(feature.properties['nmpays'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">iddistrict</th>\
+                        <td>' + (feature.properties['iddistrict'] !== null ? autolinker.link(feature.properties['iddistrict'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">idregion</th>\
+                        <td>' + (feature.properties['idregion'] !== null ? autolinker.link(feature.properties['idregion'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nb_dept</th>\
+                        <td>' + (feature.properties['nb_dept'] !== null ? autolinker.link(feature.properties['nb_dept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nb_spref</th>\
+                        <td>' + (feature.properties['nb_spref'] !== null ? autolinker.link(feature.properties['nb_spref'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nb_commune</th>\
+                        <td>' + (feature.properties['nb_commune'] !== null ? autolinker.link(feature.properties['nb_commune'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2"><strong>nblocalite</strong><br />' + (feature.properties['nblocalite'] !== null ? autolinker.link(feature.properties['nblocalite'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_2014</th>\
+                        <td>' + (feature.properties['pop_2014'] !== null ? autolinker.link(feature.properties['pop_2014'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">per_pop_to</th>\
+                        <td>' + (feature.properties['per_pop_to'] !== null ? autolinker.link(feature.properties['per_pop_to'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">hom_2014</th>\
+                        <td>' + (feature.properties['hom_2014'] !== null ? autolinker.link(feature.properties['hom_2014'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">fem_2014</th>\
+                        <td>' + (feature.properties['fem_2014'] !== null ? autolinker.link(feature.properties['fem_2014'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">rap_masc_2</th>\
+                        <td>' + (feature.properties['rap_masc_2'] !== null ? autolinker.link(feature.properties['rap_masc_2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">reg_label</th>\
+                        <td>' + (feature.properties['reg_label'] !== null ? autolinker.link(feature.properties['reg_label'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_region_1_0() {
+            return {
+                pane: 'pane_yaf_region_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 4.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,220,204,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_region_1');
+        map.getPane('pane_yaf_region_1').style.zIndex = 401;
+        map.getPane('pane_yaf_region_1').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_region_1 = new L.geoJson(json_yaf_region_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_region_1',
+            layerName: 'layer_yaf_region_1',
+            pane: 'pane_yaf_region_1',
+            onEachFeature: pop_yaf_region_1,
+            style: style_yaf_region_1_0,
+        });
+        bounds_group.addLayer(layer_yaf_region_1);
+        map.addLayer(layer_yaf_region_1);
+        function pop_yaf_depart_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2"><strong>gid</strong><br />' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2"><strong>nmdept</strong><br />' + (feature.properties['nmdept'] !== null ? autolinker.link(feature.properties['nmdept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2"><strong>nmreg</strong><br />' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">rap_masc_2</th>\
+                        <td>' + (feature.properties['rap_masc_2'] !== null ? autolinker.link(feature.properties['rap_masc_2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">tx_urbanis</th>\
+                        <td>' + (feature.properties['tx_urbanis'] !== null ? autolinker.link(feature.properties['tx_urbanis'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">tx_accrois</th>\
+                        <td>' + (feature.properties['tx_accrois'] !== null ? autolinker.link(feature.properties['tx_accrois'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['nbr_spref'] !== null ? autolinker.link(feature.properties['nbr_spref'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nbr_commu</th>\
+                        <td>' + (feature.properties['nbr_commu'] !== null ? autolinker.link(feature.properties['nbr_commu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_1998</th>\
+                        <td>' + (feature.properties['pop_1998'] !== null ? autolinker.link(feature.properties['pop_1998'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_2012</th>\
+                        <td>' + (feature.properties['pop_2012'] !== null ? autolinker.link(feature.properties['pop_2012'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nbr_habita</th>\
+                        <td>' + (feature.properties['nbr_habita'] !== null ? autolinker.link(feature.properties['nbr_habita'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nbr_locali</th>\
+                        <td>' + (feature.properties['nbr_locali'] !== null ? autolinker.link(feature.properties['nbr_locali'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop2014</th>\
+                        <td>' + (feature.properties['pop2014'] !== null ? autolinker.link(feature.properties['pop2014'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">homme_2014</th>\
+                        <td>' + (feature.properties['homme_2014'] !== null ? autolinker.link(feature.properties['homme_2014'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">femme_2014</th>\
+                        <td>' + (feature.properties['femme_2014'] !== null ? autolinker.link(feature.properties['femme_2014'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">effec_1998</th>\
+                        <td>' + (feature.properties['effec_1998'] !== null ? autolinker.link(feature.properties['effec_1998'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_depart_2_0() {
+            return {
+                pane: 'pane_yaf_depart_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(133,182,111,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_depart_2');
+        map.getPane('pane_yaf_depart_2').style.zIndex = 402;
+        map.getPane('pane_yaf_depart_2').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_depart_2 = new L.geoJson(json_yaf_depart_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_depart_2',
+            layerName: 'layer_yaf_depart_2',
+            pane: 'pane_yaf_depart_2',
+            onEachFeature: pop_yaf_depart_2,
+            style: style_yaf_depart_2_0,
+        });
+        bounds_group.addLayer(layer_yaf_depart_2);
+        map.addLayer(layer_yaf_depart_2);
+        function pop_yaf_souspref_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmdept</th>\
+                        <td>' + (feature.properties['nmdept'] !== null ? autolinker.link(feature.properties['nmdept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmspref</th>\
+                        <td>' + (feature.properties['nmspref'] !== null ? autolinker.link(feature.properties['nmspref'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmreg</th>\
+                        <td>' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Source'] !== null ? autolinker.link(feature.properties['Source'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_homme</th>\
+                        <td>' + (feature.properties['pop_homme'] !== null ? autolinker.link(feature.properties['pop_homme'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_femme</th>\
+                        <td>' + (feature.properties['pop_femme'] !== null ? autolinker.link(feature.properties['pop_femme'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_totale</th>\
+                        <td>' + (feature.properties['pop_totale'] !== null ? autolinker.link(feature.properties['pop_totale'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_souspref_3_0() {
+            return {
+                pane: 'pane_yaf_souspref_3',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(145,82,45,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_souspref_3');
+        map.getPane('pane_yaf_souspref_3').style.zIndex = 403;
+        map.getPane('pane_yaf_souspref_3').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_souspref_3 = new L.geoJson(json_yaf_souspref_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_souspref_3',
+            layerName: 'layer_yaf_souspref_3',
+            pane: 'pane_yaf_souspref_3',
+            onEachFeature: pop_yaf_souspref_3,
+            style: style_yaf_souspref_3_0,
+        });
+        bounds_group.addLayer(layer_yaf_souspref_3);
+        map.addLayer(layer_yaf_souspref_3);
+        function pop_yaf_retenueEau_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nom</th>\
+                        <td>' + (feature.properties['Nom'] !== null ? autolinker.link(feature.properties['Nom'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_retenueEau_4_0() {
+            return {
+                pane: 'pane_yaf_retenueEau_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(31,120,180,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_retenueEau_4');
+        map.getPane('pane_yaf_retenueEau_4').style.zIndex = 404;
+        map.getPane('pane_yaf_retenueEau_4').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_retenueEau_4 = new L.geoJson(json_yaf_retenueEau_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_retenueEau_4',
+            layerName: 'layer_yaf_retenueEau_4',
+            pane: 'pane_yaf_retenueEau_4',
+            onEachFeature: pop_yaf_retenueEau_4,
+            style: style_yaf_retenueEau_4_0,
+        });
+        bounds_group.addLayer(layer_yaf_retenueEau_4);
+        map.addLayer(layer_yaf_retenueEau_4);
+        function pop_yaf_coursEau_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nom</th>\
+                        <td>' + (feature.properties['Nom'] !== null ? autolinker.link(feature.properties['Nom'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['source'] !== null ? autolinker.link(feature.properties['source'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_coursEau_5_0() {
+            return {
+                pane: 'pane_yaf_coursEau_5',
+                opacity: 1,
+                color: 'rgba(31,120,180,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 3.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(31,120,180,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_coursEau_5');
+        map.getPane('pane_yaf_coursEau_5').style.zIndex = 405;
+        map.getPane('pane_yaf_coursEau_5').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_coursEau_5 = new L.geoJson(json_yaf_coursEau_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_coursEau_5',
+            layerName: 'layer_yaf_coursEau_5',
+            pane: 'pane_yaf_coursEau_5',
+            onEachFeature: pop_yaf_coursEau_5,
+            style: style_yaf_coursEau_5_0,
+        });
+        bounds_group.addLayer(layer_yaf_coursEau_5);
+        map.addLayer(layer_yaf_coursEau_5);
+        function pop_yaf_localites_6(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmhbitat</th>\
+                        <td>' + (feature.properties['nmhbitat'] !== null ? autolinker.link(feature.properties['nmhbitat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">milieu</th>\
+                        <td>' + (feature.properties['milieu'] !== null ? autolinker.link(feature.properties['milieu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['source'] !== null ? autolinker.link(feature.properties['source'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nom_loc</th>\
+                        <td>' + (feature.properties['nom_loc'] !== null ? autolinker.link(feature.properties['nom_loc'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmdept</th>\
+                        <td>' + (feature.properties['nmdept'] !== null ? autolinker.link(feature.properties['nmdept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmreg</th>\
+                        <td>' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nom_maj</th>\
+                        <td>' + (feature.properties['nom_maj'] !== null ? autolinker.link(feature.properties['nom_maj'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_1998</th>\
+                        <td>' + (feature.properties['pop_1998'] !== null ? autolinker.link(feature.properties['pop_1998'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_2012</th>\
+                        <td>' + (feature.properties['pop_2012'] !== null ? autolinker.link(feature.properties['pop_2012'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nb_etbsant</th>\
+                        <td>' + (feature.properties['nb_etbsant'] !== null ? autolinker.link(feature.properties['nb_etbsant'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_localites_6_0() {
+            return {
+                pane: 'pane_yaf_localites_6',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(227,26,28,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_localites_6');
+        map.getPane('pane_yaf_localites_6').style.zIndex = 406;
+        map.getPane('pane_yaf_localites_6').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_localites_6 = new L.geoJson(json_yaf_localites_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_localites_6',
+            layerName: 'layer_yaf_localites_6',
+            pane: 'pane_yaf_localites_6',
+            onEachFeature: pop_yaf_localites_6,
+            style: style_yaf_localites_6_0,
+        });
+        bounds_group.addLayer(layer_yaf_localites_6);
+        map.addLayer(layer_yaf_localites_6);
+        function pop_yaf_route_7(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nature</th>\
+                        <td>' + (feature.properties['nature'] !== null ? autolinker.link(feature.properties['nature'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">revetement</th>\
+                        <td>' + (feature.properties['revetement'] !== null ? autolinker.link(feature.properties['revetement'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">viabilite</th>\
+                        <td>' + (feature.properties['viabilite'] !== null ? autolinker.link(feature.properties['viabilite'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['source'] !== null ? autolinker.link(feature.properties['source'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">categorie</th>\
+                        <td>' + (feature.properties['categorie'] !== null ? autolinker.link(feature.properties['categorie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">longueur</th>\
+                        <td>' + (feature.properties['longueur'] !== null ? autolinker.link(feature.properties['longueur'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nom</th>\
+                        <td>' + (feature.properties['Nom'] !== null ? autolinker.link(feature.properties['Nom'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">type</th>\
+                        <td>' + (feature.properties['type'] !== null ? autolinker.link(feature.properties['type'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmdept</th>\
+                        <td>' + (feature.properties['nmdept'] !== null ? autolinker.link(feature.properties['nmdept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmspref</th>\
+                        <td>' + (feature.properties['nmspref'] !== null ? autolinker.link(feature.properties['nmspref'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmreg</th>\
+                        <td>' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_route_7_0() {
+            return {
+                pane: 'pane_yaf_route_7',
+                opacity: 1,
+                color: 'rgba(95,95,95,1.0)',
+                dashArray: '10,5',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_route_7');
+        map.getPane('pane_yaf_route_7').style.zIndex = 407;
+        map.getPane('pane_yaf_route_7').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_route_7 = new L.geoJson(json_yaf_route_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_route_7',
+            layerName: 'layer_yaf_route_7',
+            pane: 'pane_yaf_route_7',
+            onEachFeature: pop_yaf_route_7,
+            style: style_yaf_route_7_0,
+        });
+        bounds_group.addLayer(layer_yaf_route_7);
+        map.addLayer(layer_yaf_route_7);
+        function pop_yaf_localitesPoint_8(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmhbitat</th>\
+                        <td>' + (feature.properties['nmhbitat'] !== null ? autolinker.link(feature.properties['nmhbitat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">milieu</th>\
+                        <td>' + (feature.properties['milieu'] !== null ? autolinker.link(feature.properties['milieu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['source'] !== null ? autolinker.link(feature.properties['source'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nom_loc</th>\
+                        <td>' + (feature.properties['nom_loc'] !== null ? autolinker.link(feature.properties['nom_loc'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmdept</th>\
+                        <td>' + (feature.properties['nmdept'] !== null ? autolinker.link(feature.properties['nmdept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmreg</th>\
+                        <td>' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nom_maj</th>\
+                        <td>' + (feature.properties['nom_maj'] !== null ? autolinker.link(feature.properties['nom_maj'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_1998</th>\
+                        <td>' + (feature.properties['pop_1998'] !== null ? autolinker.link(feature.properties['pop_1998'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_2012</th>\
+                        <td>' + (feature.properties['pop_2012'] !== null ? autolinker.link(feature.properties['pop_2012'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nb_etbsant</th>\
+                        <td>' + (feature.properties['nb_etbsant'] !== null ? autolinker.link(feature.properties['nb_etbsant'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">X</th>\
+                        <td>' + (feature.properties['X'] !== null ? autolinker.link(feature.properties['X'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Y</th>\
+                        <td>' + (feature.properties['Y'] !== null ? autolinker.link(feature.properties['Y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_localitesPoint_8_0() {
+            return {
+                pane: 'pane_yaf_localitesPoint_8',
+                radius: 2.4,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,191,22,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_localitesPoint_8');
+        map.getPane('pane_yaf_localitesPoint_8').style.zIndex = 408;
+        map.getPane('pane_yaf_localitesPoint_8').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_localitesPoint_8 = new L.geoJson(json_yaf_localitesPoint_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_localitesPoint_8',
+            layerName: 'layer_yaf_localitesPoint_8',
+            pane: 'pane_yaf_localitesPoint_8',
+            onEachFeature: pop_yaf_localitesPoint_8,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_yaf_localitesPoint_8_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_yaf_localitesPoint_8);
+        map.addLayer(layer_yaf_localitesPoint_8);
+        function pop_yaf_chefLeuReg_9(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">toponymie</th>\
+                        <td>' + (feature.properties['toponymie'] !== null ? autolinker.link(feature.properties['toponymie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_chefLeuReg_9_0() {
+            return {
+                pane: 'pane_yaf_chefLeuReg_9',
+                shape: 'square',
+                radius: 5.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(225,89,137,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_chefLeuReg_9');
+        map.getPane('pane_yaf_chefLeuReg_9').style.zIndex = 409;
+        map.getPane('pane_yaf_chefLeuReg_9').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_chefLeuReg_9 = new L.geoJson(json_yaf_chefLeuReg_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_chefLeuReg_9',
+            layerName: 'layer_yaf_chefLeuReg_9',
+            pane: 'pane_yaf_chefLeuReg_9',
+            onEachFeature: pop_yaf_chefLeuReg_9,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_yaf_chefLeuReg_9_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_yaf_chefLeuReg_9);
+        map.addLayer(layer_yaf_chefLeuReg_9);
+        function pop_yaf_chefLieuDepart_10(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['__gid'] !== null ? autolinker.link(feature.properties['__gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">toponymie</th>\
+                        <td>' + (feature.properties['toponymie'] !== null ? autolinker.link(feature.properties['toponymie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">administra</th>\
+                        <td>' + (feature.properties['administra'] !== null ? autolinker.link(feature.properties['administra'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_chefLieuDepart_10_0() {
+            return {
+                pane: 'pane_yaf_chefLieuDepart_10',
+                shape: 'diamond',
+                radius: 4.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(213,66,193,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_chefLieuDepart_10');
+        map.getPane('pane_yaf_chefLieuDepart_10').style.zIndex = 410;
+        map.getPane('pane_yaf_chefLieuDepart_10').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_chefLieuDepart_10 = new L.geoJson(json_yaf_chefLieuDepart_10, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_chefLieuDepart_10',
+            layerName: 'layer_yaf_chefLieuDepart_10',
+            pane: 'pane_yaf_chefLieuDepart_10',
+            onEachFeature: pop_yaf_chefLieuDepart_10,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_yaf_chefLieuDepart_10_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_yaf_chefLieuDepart_10);
+        map.addLayer(layer_yaf_chefLieuDepart_10);
+        function pop_yaf_chefLieuSousPref_11(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">toponymie</th>\
+                        <td>' + (feature.properties['toponymie'] !== null ? autolinker.link(feature.properties['toponymie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_chefLieuSousPref_11_0() {
+            return {
+                pane: 'pane_yaf_chefLieuSousPref_11',
+                radius: 4.8,
+                opacity: 1,
+                color: 'rgba(61,128,53,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(84,176,74,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_chefLieuSousPref_11');
+        map.getPane('pane_yaf_chefLieuSousPref_11').style.zIndex = 411;
+        map.getPane('pane_yaf_chefLieuSousPref_11').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_chefLieuSousPref_11 = new L.geoJson(json_yaf_chefLieuSousPref_11, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_chefLieuSousPref_11',
+            layerName: 'layer_yaf_chefLieuSousPref_11',
+            pane: 'pane_yaf_chefLieuSousPref_11',
+            onEachFeature: pop_yaf_chefLieuSousPref_11,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_yaf_chefLieuSousPref_11_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_yaf_chefLieuSousPref_11);
+        map.addLayer(layer_yaf_chefLieuSousPref_11);
+        function pop_yaf_equipement_12(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">gid</th>\
+                        <td>' + (feature.properties['gid'] !== null ? autolinker.link(feature.properties['gid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">noms</th>\
+                        <td>' + (feature.properties['noms'] !== null ? autolinker.link(feature.properties['noms'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">donnee</th>\
+                        <td>' + (feature.properties['donnee'] !== null ? autolinker.link(feature.properties['donnee'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmdept</th>\
+                        <td>' + (feature.properties['nmdept'] !== null ? autolinker.link(feature.properties['nmdept'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmspref</th>\
+                        <td>' + (feature.properties['nmspref'] !== null ? autolinker.link(feature.properties['nmspref'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nmreg</th>\
+                        <td>' + (feature.properties['nmreg'] !== null ? autolinker.link(feature.properties['nmreg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['intitule'] !== null ? autolinker.link(feature.properties['intitule'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">categorie</th>\
+                        <td>' + (feature.properties['categorie'] !== null ? autolinker.link(feature.properties['categorie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['class_data'] !== null ? autolinker.link(feature.properties['class_data'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">localite</th>\
+                        <td>' + (feature.properties['localite'] !== null ? autolinker.link(feature.properties['localite'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_yaf_equipement_12_0() {
+            return {
+                pane: 'pane_yaf_equipement_12',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(241,91,85,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_yaf_equipement_12');
+        map.getPane('pane_yaf_equipement_12').style.zIndex = 412;
+        map.getPane('pane_yaf_equipement_12').style['mix-blend-mode'] = 'normal';
+        var layer_yaf_equipement_12 = new L.geoJson(json_yaf_equipement_12, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_yaf_equipement_12',
+            layerName: 'layer_yaf_equipement_12',
+            pane: 'pane_yaf_equipement_12',
+            onEachFeature: pop_yaf_equipement_12,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_yaf_equipement_12_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_yaf_equipement_12);
+        map.addLayer(layer_yaf_equipement_12);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        L.control.layers(baseMaps,{'<img src="legend/yaf_equipement_12.png" /> yaf_equipement': layer_yaf_equipement_12,'<img src="legend/yaf_chefLieuSousPref_11.png" /> yaf_chefLieuSousPref': layer_yaf_chefLieuSousPref_11,'<img src="legend/yaf_chefLieuDepart_10.png" /> yaf_chefLieuDepart': layer_yaf_chefLieuDepart_10,'<img src="legend/yaf_chefLeuReg_9.png" /> yaf_chefLeuReg': layer_yaf_chefLeuReg_9,'<img src="legend/yaf_localitesPoint_8.png" /> yaf_localitesPoint': layer_yaf_localitesPoint_8,'<img src="legend/yaf_route_7.png" /> yaf_route': layer_yaf_route_7,'<img src="legend/yaf_localites_6.png" /> yaf_localites': layer_yaf_localites_6,'<img src="legend/yaf_coursEau_5.png" /> yaf_coursEau': layer_yaf_coursEau_5,'<img src="legend/yaf_retenueEau_4.png" /> yaf_retenueEau': layer_yaf_retenueEau_4,'<img src="legend/yaf_souspref_3.png" /> yaf_souspref': layer_yaf_souspref_3,'<img src="legend/yaf_depart_2.png" /> yaf_depart': layer_yaf_depart_2,'<img src="legend/yaf_region_1.png" /> yaf_region': layer_yaf_region_1,"Google Hybrid": layer_GoogleHybrid_0,}).addTo(map);
+        setBounds();
+        var i = 0;
+        layer_yaf_region_1.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['reg_label'] !== null?String('<div style="color: #323232; font-size: 13pt; font-weight: bold; font-style: italic; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['reg_label']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_yaf_region_1'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_yaf_depart_2.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['nmdept'] !== null?String('<div style="color: #323232; font-size: 9pt; font-weight: bold; font-style: italic; font-family: \'Times New Roman\', sans-serif;">' + layer.feature.properties['nmdept']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_yaf_depart_2'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        map.addControl(new L.Control.Search({
+            layer: layer_yaf_localites_6,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'pop_2012'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        resetLabels([layer_yaf_region_1,layer_yaf_depart_2,layer_yaf_souspref_3,layer_yaf_localites_6]);
+        map.on("zoomend", function(){
+            resetLabels([layer_yaf_region_1,layer_yaf_depart_2,layer_yaf_souspref_3,layer_yaf_localites_6]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_yaf_region_1,layer_yaf_depart_2,layer_yaf_souspref_3,layer_yaf_localites_6]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_yaf_region_1,layer_yaf_depart_2,layer_yaf_souspref_3,layer_yaf_localites_6]);
+        });
+        </script>
+    </body>
+
+   
+    <div id="map-credits">
+        by Yao Ahoutou Fiacre/Géomaticien
+    </div>
+
+</html>

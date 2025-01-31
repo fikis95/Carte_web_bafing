@@ -1,0 +1,1 @@
+var json_yaf_chefLeuReg_9 = {"type":"FeatureCollection","name":"yaf_chefLeuReg_9","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[{"type":"Feature","properties":{"gid":"1","toponymie":"Touba"},"geometry":{"type":"Point","coordinates":[-7.681219898999926,8.28612376600006]}}]}
